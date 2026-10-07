@@ -1,7 +1,8 @@
 import csv
 
 # file_path = "data/homework_invoices.csv"
-file_path = "data/invoices.csv"
+file_path = "../../data/invoices.csv"
+
 
 # Method to read a CSV file
 def read_csv_file(file_path):
@@ -76,6 +77,6 @@ print(identify_high_value_invoices(read_csv_file(file_path)))
 print("#### Missing or invalid amount handling ####")
 print(handle_missing_or_invalid_amount(read_csv_file(file_path)))
 print("#### Writing high-value invoices to CSV ####")
-print(write_high_value_invoices_to_csv(identify_high_value_invoices(read_csv_file(file_path)), "data/high_value_invoices.csv"))
+print(write_high_value_invoices_to_csv(identify_high_value_invoices(read_csv_file(file_path)), "../../data/high_value_invoices.csv"))
 print("#### Group totals by vendor ####")
 print(group_totals_by_vendor(read_csv_file(file_path)))
