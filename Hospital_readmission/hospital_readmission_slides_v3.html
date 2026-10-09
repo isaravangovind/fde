@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repeat Hospital Stays</title>
+<style>
+:root{
+  --bg:#f3f2ee; --slide:#ffffff; --ink:#111110; --ink2:#4d4c48; --muted:#7a7974;
+  --line:#e2e0da; --accent:#2a78d6; --accent-soft:#e6f0fb; --bar-muted:#c9c7c0;
+  --fact:#1b7f4c; --fact-bg:#e4f4ea; --assume:#9a5b00; --assume-bg:#fdf1dc;
+  --hyp:#6b3fb5; --hyp-bg:#efe8fb; --est:#0b6e8a; --est-bg:#ddf1f6; --stop:#b3261e; --stop-bg:#fbe7e5;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121211; --slide:#1c1c1b; --ink:#f4f3ef; --ink2:#c3c2b7; --muted:#8f8e88;
+    --line:#33332f; --accent:#3987e5; --accent-soft:#1d2c40; --bar-muted:#55544f;
+    --fact:#6fd39b; --fact-bg:#173322; --assume:#f0b55a; --assume-bg:#3a2a10;
+    --hyp:#b9a2f0; --hyp-bg:#2b2140; --est:#6cc7e0; --est-bg:#12303a; --stop:#f19189; --stop-bg:#3d1c1a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121211; --slide:#1c1c1b; --ink:#f4f3ef; --ink2:#c3c2b7; --muted:#8f8e88;
+  --line:#33332f; --accent:#3987e5; --accent-soft:#1d2c40; --bar-muted:#55544f;
+  --fact:#6fd39b; --fact-bg:#173322; --assume:#f0b55a; --assume-bg:#3a2a10;
+  --hyp:#b9a2f0; --hyp-bg:#2b2140; --est:#6cc7e0; --est-bg:#12303a; --stop:#f19189; --stop-bg:#3d1c1a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.deck{max-width:1180px;margin:0 auto;padding:24px 16px 96px}
+.slide{scroll-snap-align:start;background:var(--slide);border:1px solid var(--line);border-radius:14px;
+  padding:36px 44px 28px;margin:0 0 28px;min-height:min(92vh,720px);display:flex;flex-direction:column}
+.kicker{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
+h1,h2{margin:0 0 18px;line-height:1.2;font-weight:750;text-wrap:balance}
+h1{font-size:30px} h2{font-size:26px}
+h3{font-size:15px;margin:0 0 8px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 10px}
+.grid{display:grid;gap:22px}
+.grid>*{min-width:0}
+.table-scroll{overflow-x:auto}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g-wide{grid-template-columns:1.15fr .85fr}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card.accent{background:var(--accent-soft);border-color:transparent}
+.big{font-size:40px;font-weight:800;line-height:1;color:var(--ink)}
+.big small{font-size:16px;font-weight:600;color:var(--ink2)}
+.muted{color:var(--muted)} .ink2{color:var(--ink2)}
+ul{margin:0;padding-left:18px} li{margin:0 0 7px}
+.chip{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;vertical-align:1px;white-space:nowrap}
+.F{color:var(--fact);background:var(--fact-bg)} .A{color:var(--assume);background:var(--assume-bg)} .H{color:var(--hyp);background:var(--hyp-bg)} .E{color:var(--est);background:var(--est-bg)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);font-weight:700}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--accent-soft);font-weight:600}
+.cell-bad{color:var(--stop);font-weight:700}
+.ask{border-left:4px solid var(--accent);padding:12px 16px;background:var(--accent-soft);border-radius:0 10px 10px 0;font-size:17px}
+.ai{border:2px solid var(--ink);border-radius:10px;padding:16px 18px;font-size:15.5px}
+.foot{margin-top:auto;padding-top:16px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-bottom:14px}
+/* chart */
+.chart{display:flex;align-items:flex-end;gap:18px;height:260px;padding:0 6px;border-bottom:1px solid var(--line);position:relative}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.bar{width:100%;max-width:92px;border-radius:4px 4px 0 0;background:var(--bar-muted);position:relative;cursor:default}
+.bar.hi{background:var(--accent)}
+.bar-val{font-weight:800;font-size:17px;margin-bottom:6px}
+.xlab{display:flex;gap:18px;padding:8px 6px 0}
+.xlab div{flex:1;text-align:center;font-size:13px;color:var(--ink2)}
+.tip{position:absolute;bottom:calc(100% + 34px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--slide);
+  font-size:12.5px;padding:6px 9px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s}
+.bar-wrap:first-child .tip{left:0;transform:none}.bar-wrap:last-child .tip{left:auto;right:0;transform:none}
+.bar-wrap:hover .tip,.bar-wrap:focus-within .tip{opacity:1}
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.step{border:1px solid var(--line);border-radius:10px;padding:12px;position:relative;background:var(--slide)}
+.step b{display:block;font-size:13px;color:var(--accent);margin-bottom:4px}
+.step span{font-size:14px}
+.nav{position:fixed;right:18px;bottom:18px;display:flex;gap:8px;align-items:center;background:var(--slide);border:1px solid var(--line);
+  border-radius:999px;padding:6px 8px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+.nav button{border:0;background:var(--accent-soft);color:var(--ink);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer}
+.nav span{font-size:13px;color:var(--ink2);min-width:44px;text-align:center}
+@media (max-width:820px){
+  .slide{padding:24px 18px 20px;min-height:auto}
+  .g2,.g3,.g-wide{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  h1{font-size:24px} h2{font-size:21px}
+  .table-scroll{overflow-x:auto}
+  .chart{gap:10px} .xlab{gap:10px}
+}
+@media print{
+  body{background:#fff}.nav{display:none}.deck{padding:0;max-width:none}
+  .slide{break-after:page;border:0;border-radius:0;min-height:auto;margin:0}
+}
+
+.bar-n{font-size:11.5px;color:var(--muted);margin-top:2px}
+.xlab div b{display:block;font-weight:600;color:var(--ink)}
+.routes td:first-child{font-weight:700;white-space:nowrap}
+.small{font-size:13px}
+
+.g-72{grid-template-columns:2.7fr 1fr}
+.status{display:inline-block;align-self:flex-start;background:var(--assume-bg);color:var(--assume);font-weight:700;font-size:13.5px;padding:4px 12px;border-radius:999px;margin:-6px 0 14px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.tile b{display:block;font-size:17px;line-height:1.2}
+.tile span{font-size:12.5px;color:var(--ink2)}
+.be th.grp{text-align:center;font-size:12px;border-bottom:0}
+.be td.def{font-size:12px;color:var(--ink2);background:var(--bg);text-transform:none;letter-spacing:0;font-weight:400}
+.be td,.be th{padding:7px 9px}
+.be .hl{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)}
+.be td.over{color:var(--stop);font-weight:600;font-size:13px}
+.worked{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 10px 10px 0;padding:10px 14px;margin-top:10px;font-size:14px}
+.worked .lab{font-weight:700;color:var(--accent)}
+.worked .tag{grid-column:1/-1;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.side h3{margin-top:0}
+.side .route{border-bottom:1px solid var(--line);padding:6px 0;font-size:13.5px}
+.side .route b{display:block}
+@media (max-width:820px){.g-72{grid-template-columns:1fr}.tiles{grid-template-columns:1fr}}
+.rulebox{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:0 10px 10px 0;padding:8px 14px;margin:0 0 12px;font-size:14.5px}
+</style>
+</head>
+<body>
+
+<main class="deck">
+
+<!-- ============ SLIDE 1 ============ -->
+<section class="slide" id="s1" aria-label="Slide 1 of 5">
+  <div class="kicker">1 · Recommendation</div>
+  <h1>Check first, then test a simple follow-up service for patients with repeated hospital stays. Don't build AI now.</h1>
+  <div class="legend">
+    <span><span class="chip F">Fact</span> counted from the data</span>
+    <span><span class="chip E">Estimate</span> from a statistical model</span>
+    <span><span class="chip A">Assumption</span> a number we chose</span>
+    <span><span class="chip H">To test</span> an idea not yet proven</span>
+  </div>
+  <div class="grid g-wide">
+    <div>
+      <div class="grid g2" style="margin-bottom:16px">
+        <div class="card">
+          <h3>The patient problem</h3>
+          <p>Patients sent home after <b>2 or more hospital stays in the past year</b> came back into hospital within 30 days <b>21%</b> of the time, vs <b>8%</b> for other patients sent home. <span class="chip F">Fact</span></p>
+          <p class="small ink2" style="margin:0">Why is unknown: maybe unclear medicines, no follow-up booked, or little help at home. <span class="chip H">To test</span></p>
+        </div>
+        <div class="card">
+          <h3>Who</h3>
+          <p><b>12% of home discharges</b> (7,402 hospital stays, 4,643 people). <span class="chip F">Fact</span></p>
+          <p class="small ink2" style="margin:0">Past stays are known on arrival. Patients are enrolled at discharge planning, once going home is confirmed.</p>
+        </div>
+        <div class="card">
+          <h3>Who decides</h3>
+          <p style="margin:0">Head of Care Transitions (the team that plans discharge), together with Finance.</p>
+        </div>
+        <div class="card">
+          <h3>How it could help</h3>
+          <ul>
+            <li><b>Patients:</b> agreed follow-up done, fewer problems after going home <span class="chip H">To test</span></li>
+            <li><b>Revenue:</b> paid follow-up care <span class="chip H">To test</span></li>
+            <li><b>Costs:</b> less repeat work; freed beds <span class="chip H">To test</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="ask"><b>Decision we ask for today:</b> approve an 8–12 week check of our own patients, costs and payment rules <span class="chip A">Assumption: timing</span>. No build. If the checks pass, run a small, fair test against normal care.</div>
+    </div>
+    <div class="ai">
+      <h3 style="color:var(--ink)">Would we build AI for this now?</h3>
+      <p style="margin:0"><b>No.</b> Patients sent home after two or more hospital stays last year came back within 30 days far more often (21% vs 8%), and the gap remained after allowing for age, illness and other factors. But we have not shown what need is unmet, that a service fixes it, or that it pays. Until then there is nothing for AI to improve: a simple, visible rule is enough to choose who gets a needs check. Check the need and the money, test a simple workflow, then compare AI fairly.</p>
+    </div>
+  </div>
+  <div class="foot">US setting. Data: 101,766 US hospital stays with diabetes recorded, 130 hospitals, 1999–2008 (Strack et al., 2014). "Came back into hospital" = readmitted within 30 days as recorded. Care at hospitals outside the same health system is not captured.</div>
+</section>
+
+<!-- ============ SLIDE 2 ============ -->
+<section class="slide" id="s2" aria-label="Slide 2 of 5">
+  <div class="kicker">2 · Evidence</div>
+  <h2>The more hospital stays last year, the more often patients came back within 30 days. The pattern stayed in every check we ran.</h2>
+  <div class="grid g-wide">
+    <div>
+      <h3>Came back within 30 days, by hospital stays in the past year <span class="chip F">Fact</span></h3>
+      <p class="muted" style="font-size:13px;margin-bottom:34px">Patients sent home only · 60,234 hospital stays · blue = our target group</p>
+      <div class="chart" role="img" aria-label="Bar chart: 0 prior stays 6.6%, 1 stay 11.6%, 2 stays 16.7%, 3 or more stays 26.4%">
+        <div class="bar-wrap" tabindex="0"><div class="bar-val">6.6%</div><div class="bar" style="height:25%"></div><div class="tip">0 stays · 2,794 of 42,202 came back</div></div>
+        <div class="bar-wrap" tabindex="0"><div class="bar-val">11.6%</div><div class="bar" style="height:44%"></div><div class="tip">1 stay · 1,228 of 10,630 came back</div></div>
+        <div class="bar-wrap" tabindex="0"><div class="bar-val">16.7%</div><div class="bar hi" style="height:63%"></div><div class="tip">2 stays · 641 of 3,845 came back</div></div>
+        <div class="bar-wrap" tabindex="0"><div class="bar-val">26.4%</div><div class="bar hi" style="height:100%"></div><div class="tip">3+ stays · 939 of 3,557 came back</div></div>
+      </div>
+      <div class="xlab">
+        <div><b>0 stays</b><span class="bar-n">2,794 / 42,202</span></div>
+        <div><b>1 stay</b><span class="bar-n">1,228 / 10,630</span></div>
+        <div><b>2 stays</b><span class="bar-n">641 / 3,845</span></div>
+        <div><b>3+ stays</b><span class="bar-n">939 / 3,557</span></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Biggest caution</h3>
+        <p class="ink2" style="margin:0">Old data (1999–2008), many hospitals mixed together, no costs, and care outside the same health system is missed. It shows a <b>pattern</b>, not the <b>cause</b>, and not whether these hospital stays could be prevented.</p>
+      </div>
+    </div>
+    <div>
+      <h3>What the data shows</h3>
+      <ul style="margin-bottom:14px">
+        <li><b>Starting point:</b> 99,343 stays (69,990 people) after removing patients who died or went to hospice. 11.4% came back within 30 days. <span class="chip F">Fact</span></li>
+        <li><b>Target vs others sent home:</b> 1,580 of 7,402 stays (21.3%) vs 4,022 of 52,832 (7.6%). <span class="chip F">Fact</span></li>
+        <li><b>Checks:</b> counting each person once: about 18% vs 6% <span class="chip F">Fact</span>. After allowing for age, illness, stay length, medicines and more: about 18% vs 8% <span class="chip E">Estimate</span>.</li>
+        <li><b>Concentrated:</b> 12% of home-discharge stays, but 28% of quick returns (19% counting each person once). <span class="chip F">Fact</span></li>
+      </ul>
+      <h3>Options we looked at</h3>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Option</th><th>Type</th><th>What this data can tell us</th></tr></thead>
+        <tbody>
+          <tr class="sel"><td>Follow-up for patients with repeated stays ✓</td><td>Revenue + Cost</td><td>Clear pattern; group known on arrival</td></tr>
+          <tr><td>Ongoing diabetes support (HbA1c above 8%)</td><td>Revenue</td><td>Its value and demand are not measured in this data</td></tr>
+          <tr><td>Faster discharge for long stays</td><td>Cost</td><td>Many bed days, but no delay data. A separate idea, not yet checked</td></tr>
+          <tr><td>Fewer repeated tests</td><td>Cost</td><td>Only test counts. Can't assess</td></tr>
+          <tr><td>Staffing / software savings</td><td>Cost</td><td>No data. Can't assess</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Stays exclude death and hospice discharges. "Sent home" = discharge code 1 (home, not coded as home-health care). "Each person once" = one randomly chosen stay per person. Estimate = statistical model adjusting for age, sex, race, main diagnosis, stay length, number of diagnoses, medicines, tests, procedures, prior ER and clinic visits, admission route and diabetes treatment. An association, not proof of cause.</div>
+</section>
+
+<!-- ============ SLIDE 3 ============ -->
+<section class="slide" id="s3" aria-label="Slide 3 of 5">
+  <div class="kicker">3 · Business value and break-even</div>
+  <h2>How many hospital returns must we prevent to cover the service's cost?</h2>
+  <div class="status">Illustrative assumptions, not confirmed costs or predicted results</div>
+  <div class="grid g-72">
+    <div>
+      <div class="tiles">
+        <div class="tile"><b>600 participants a year</b><span>1,000 eligible × 60% take part <span class="chip A">Assumption</span></span></div>
+        <div class="tile"><b>108 returns without the service</b><span>600 × 18% come back within 30 days <span class="chip A">Assumption, based on old data</span></span></div>
+        <div class="tile"><b>$50,000 fixed yearly cost</b><span>Placeholder, not a measured cost <span class="chip A">Assumption</span></span></div>
+      </div>
+      <div class="table-scroll">
+      <table class="be">
+        <thead>
+          <tr><th colspan="2" class="grp">Cost the hospital must cover</th><th colspan="3" class="grp">Returns to prevent if each prevented return brings the hospital…</th></tr>
+          <tr><td colspan="2" class="def"><b>Hospital costs, not patient fees.</b> Follow-up income is already deducted; yearly totals include the $50,000 fixed cost.</td><td colspan="3" class="def"><b>Benefit per prevented return</b> = money saved or earned, minus income lost from that stay. It applies to each prevented return, not to every participant.</td></tr>
+          <tr><th>Service cost per participant, after follow-up income</th><th class="num">Total yearly cost to cover</th><th class="num hl">$2,000 benefit</th><th class="num">$5,000 benefit</th><th class="num">$10,000 benefit</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="hl"><b>$100</b></td><td class="num">$110,000</td><td class="num hl"><b>55 returns</b></td><td class="num">22 returns</td><td class="num">11 returns</td></tr>
+          <tr><td><b>$300</b></td><td class="num">$230,000</td><td class="num over">115: more than 108</td><td class="num">46 returns</td><td class="num">23 returns</td></tr>
+          <tr><td><b>$500</b></td><td class="num">$350,000</td><td class="num over">175: more than 108</td><td class="num">70 returns</td><td class="num">35 returns</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small muted" style="margin:6px 0 0"><b>More than 108:</b> cannot cover the cost under these assumptions, even if all 108 returns were prevented. Further right = fewer returns needed to cover costs (not proof that it is achievable).</p>
+      <div class="worked">
+        <div class="tag">Worked example (highlighted cells, not a recommended choice)</div>
+        <span class="lab">Yearly cost</span><span>600 participants × $100 + $50,000 fixed = <b>$110,000</b></span>
+        <span class="lab">Returns needed</span><span>$110,000 ÷ $2,000 benefit per prevented return = <b>55 returns</b></span>
+        <span class="lab">Meaning</span><span>55 × $2,000 = $110,000, so the cost is covered with <b>no surplus</b>.</span>
+      </div>
+    </div>
+    <div class="side">
+      <h3>Three ways it could pay</h3>
+      <div class="route"><b>A · Follow-up income</b>Payments for follow-up care help cover delivery costs.</div>
+      <div class="route"><b>B · Actual spending cuts</b>For example less overtime or agency staff. Saved time alone is not cash.</div>
+      <div class="route"><b>C · Prevented returns</b>Financial benefit after subtracting income lost from stays that no longer happen.</div>
+      <p class="small" style="margin:8px 0"><b>The table tests Route C</b> covering what is left after follow-up income. No Route B savings are included. Each saving is counted once.</p>
+      <p class="small" style="margin:0 0 10px">At <b>$0 or less</b> benefit per prevented return, Route C cannot cover the cost. <span class="chip H">To test</span></p>
+      <div class="card accent" style="padding:10px 12px;margin-bottom:10px">
+        <p class="small" style="margin:0"><b>We do not know how many returns this service can prevent.</b> Confirm costs, payment terms and delivery before a pilot.</p>
+      </div>
+      <div class="card" style="padding:10px 12px">
+        <p class="small" style="margin:0"><b>Patient outcomes to track:</b> share returning within 30 days, and share with agreed follow-up completed (baseline unknown).</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Participant = one enrolled home discharge (a person can enrol more than once); returns are counted the same way. 18% is an assumed baseline informed by the old data (counted rate 21%). All dollar figures are illustrative, not prices or forecasts.</div>
+</section>
+
+<!-- ============ SLIDE 4 ============ -->
+<section class="slide" id="s4" aria-label="Slide 4 of 5">
+  <div class="kicker">4 · Intervention</div>
+  <h2>A rules-led follow-up run by case managers. The system handles the tasks, and people make the decisions.</h2>
+  <div class="flow">
+    <div class="step"><b>1 · Flag</b><span>At discharge planning: 2+ stays in the past year <i>and</i> going home.</span></div>
+    <div class="step"><b>2 · Needs check</b><span>Case manager asks about medicines, help at home, transport and existing services.</span></div>
+    <div class="step"><b>3 · Agree a plan</b><span>Follow-up care booked, with timing set by clinical need.</span></div>
+    <div class="step"><b>4 · Check in</b><span>Call or message after going home, timed by need and payer rules.</span></div>
+    <div class="step"><b>5 · Escalate</b><span>Problems routed by urgency to a named coordinator, with an out-of-hours route.</span></div>
+  </div>
+  <div class="grid g3">
+    <div class="card">
+      <h3>System does / people do</h3>
+      <p class="small"><b>System:</b> flag the record, create and assign tasks, help book visits, send approved reminders, track handovers, chase overdue tasks.</p>
+      <p class="small"><b>People:</b> judge need, agree the plan with the patient, decide urgency, handle exceptions, sign off care.</p>
+      <p class="small" style="margin:0"><b>Owner:</b> case management, with doctor sign-off. First check what our current record system can already do.</p>
+    </div>
+    <div class="card">
+      <h3>How we will measure it</h3>
+      <ul class="small">
+        <li><b>Patient:</b> agreed follow-up done and needs resolved (baseline unknown)</li>
+        <li><b>Outcome:</b> came back within 30 days (old data: 21%) <span class="chip F">Fact</span></li>
+        <li><b>Money:</b> net income or real saving per patient enrolled</li>
+        <li><b>Side effects:</b> staff workload, ER visits, patient burden</li>
+      </ul>
+      <p class="small" style="margin:0"><b>Compared with:</b> normal discharge care, and the same service offered to <b>all</b> patients sent home.</p>
+    </div>
+    <div class="card">
+      <h3>Why not AI now</h3>
+      <p class="small">There is no proven service yet for AI to target better. A simple, visible rule is enough to choose who gets a needs check, and staff can see why a patient was flagged.</p>
+      <p class="small" style="margin:0"><b>Later, if the service works:</b> test AI fairly, on separate test patients, using only information known at the time of the decision.</p>
+    </div>
+  </div>
+  <div class="foot">Steps and timings are a starting design <span class="chip A">Assumption</span>, to be set with clinical staff. Whether follow-up can be billed depends on payer rules (for example, contact and visit deadlines), which must be checked.</div>
+</section>
+
+<!-- ============ SLIDE 5 ============ -->
+<section class="slide" id="s5" aria-label="Slide 5 of 5">
+  <div class="kicker">5 · Unknowns and validation plan</div>
+  <h2>Three checks decide whether to run a pilot. Do them together over the next 8–12 weeks.</h2>
+  <div class="rulebox"><b>The rule:</b> flag a hospital stay if the patient is <b>going home</b> (not to a care facility, home-health care or hospice) <b>and</b> had <b>2+ inpatient stays in the 12 months before</b> this admission. Outcome counted: a new inpatient stay within <b>30 days</b> of discharge.</div>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th style="width:22%">What must be true</th><th>Status</th><th>How we check</th><th>Owner</th><th>Go / Stop</th></tr></thead>
+    <tbody>
+      <tr><td><b>1. Our patients today have a specific, fixable need after going home</b></td><td><span class="chip F">Fact</span> in old data<br><span class="chip H">To test</span> for us</td><td>Re-run the rule on our last 12–24 months (group size, flagged vs other return rates, cut-offs 1+/2+/3+, monthly workload); review 30–50 randomly picked records; talk to patients and staff; list existing services</td><td>Head of Care Transitions + data analyst</td><td><b>Go</b> if a defined group has a gap we can fix that isn't already covered. <b>Stop</b> if not.</td></tr>
+      <tr><td><b>2. At least one money route pays</b></td><td><span class="chip A">Assumption</span></td><td>Check payer mix, contracts, penalties, billing rules and real delivery costs</td><td>Finance / billing team</td><td><b>Go</b> if route A, B or C meets the Slide 3 break-even at realistic uptake. <b>Stop</b> if none can.</td></tr>
+      <tr><td><b>3. We can deliver it</b></td><td><span class="chip H">To test</span></td><td>Check staff time, appointment slots, contact details and what the record system supports</td><td>Case management + IT</td><td><b>Go</b> if we can serve the expected numbers without hurting other care. <b>Stop</b> if not.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card">
+      <h3>What can be automated</h3>
+      <p class="small" style="margin:0 0 6px"><b>Checks:</b> rule query and monthly refresh, results dashboard, random pick of records to review, review form tallies.</p>
+      <p class="small" style="margin:0"><b>Pilot:</b> daily flag to the work-list, random assignment, task creation, booking alerts, approved reminders, chasing overdue tasks, routing problems, results dashboard.</p>
+    </div>
+    <div class="card">
+      <h3>What stays with people</h3>
+      <p class="small" style="margin:0 0 6px">Reviewing records, interviews, confirming the patient is going home, judging needs, choosing follow-up timing, calls, deciding urgency, the grow-or-stop decision.</p>
+      <p class="small muted" style="margin:0">Rules and workflow only. No AI.</p>
+    </div>
+    <div class="card">
+      <h3>Only if all three checks pass</h3>
+      <ol class="small" style="margin:0;padding-left:18px">
+        <li>A <b>fair pilot</b>: patients assigned at random where possible, compared with normal care.</li>
+        <li><b>Grow or stop</b> on patient results, money and staff workload together.</li>
+        <li>Then test whether AI picks patients better, on separate test data, by enough to cover its cost.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="ask" style="margin-top:12px"><b>Next step this week:</b> Head of Care Transitions and Finance start checks 1–3 at the same time, with a decision meeting at the end of 8–12 weeks.</div>
+  <div class="foot">Record-review size and timing are planning assumptions. Go/stop money criteria come from the Slide 3 break-even model, using local numbers once known.</div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Slide navigation">
+  <button id="prev" aria-label="Previous slide">↑</button>
+  <span id="count">1 / 5</span>
+  <button id="next" aria-label="Next slide">↓</button>
+</nav>
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];let cur=0;
+  const count=document.getElementById('count');
+  function go(i){cur=Math.max(0,Math.min(slides.length-1,i));slides[cur].scrollIntoView({behavior:'smooth',block:'start'});}
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  document.getElementById('next').onclick=()=>go(cur+1);
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();go(cur+1);}
+    if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1);}
+  });
+  const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){cur=slides.indexOf(en.target);count.textContent=(cur+1)+' / '+slides.length;}})},{threshold:.5});
+  slides.forEach(s=>io.observe(s));
+})();
+</script>
+</body>
+</html>
